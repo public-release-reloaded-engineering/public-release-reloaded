@@ -1,0 +1,6 @@
+[submodule "reloaded-tools"]
+	path = reloaded-tools
+	url = file:///home/stefan/development/public-release-reloaded/reloaded-tools
+[submodule "releases"]
+	path = releases
+	url = file:///home/stefan/development/public-release-reloaded/releases
