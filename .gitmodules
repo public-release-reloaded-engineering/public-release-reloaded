@@ -4,3 +4,6 @@
 [submodule "releases"]
 	path = releases
 	url = file:///home/stefan/development/public-release-reloaded/releases
+[submodule "vendor"]
+	path = vendor
+	url = file:///home/stefan/development/public-release-reloaded/vendor
