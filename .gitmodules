@@ -7,3 +7,7 @@
 [submodule "vendor"]
 	path = vendor
 	url = file:///home/stefan/development/public-release-reloaded/vendor
+[submodule "dependencies/github"]
+	path = dependencies/github
+	url = https://github.com/smuenzel/ocaml-github.git
+	branch = async-port
