@@ -123,20 +123,103 @@ needed (e.g. `cohttp_async_websocket`, `cohttp_static_handler`, `email_message`,
 
 ---
 
-## 7. Packages excluded from the build
+## 7. `Comparable.Make*` requires sexp derivation in core v0.18
+
+Core v0.18 changed the signature requirements for `Comparable.Make*` functors:
+
+- `Comparable.Make_plain` now requires `sexp_of_t` in addition to `compare`
+- `Comparable.Make` and `Comparable.Make_using_comparator` require both directions
+  (`sexp_of_t` and `t_of_sexp`, i.e. full `[@@deriving sexp]`)
+
+Many packages that passed `[@@deriving compare]` or `[@@deriving sexp_of, compare]`
+to these functors needed updating.
+
+**Fix:** add `sexp_of` (for `Make_plain`) or change `sexp_of` to `sexp` (for
+`Make` / `Make_using_comparator`) in the relevant `[@@deriving ...]` attributes.
+
+Notable affected locations: `skyline` (multiple components).
+
+---
+
+## 8. `[%call_pos]` is a JST-only ppx extension
+
+Jane Street's fork defines `[%call_pos]` as a type annotation meaning "the
+caller's source position".  Standard ppxlib does not recognize it.
+
+```ocaml
+(* JST-only: *)
+val f : here:[%call_pos] -> unit
+
+(* Standard OCaml 5.5: *)
+val f : here:Source_code_position.t -> unit
+```
+
+`Source_code_position.t` is identical to `Stdlib.Lexing.position` and is
+what `[%here]` produces.  Call sites that previously received the position
+implicitly (via ppx magic) need an explicit `~here:[%here]` argument.
+
+**Fix:** replace `[%call_pos]` with `Source_code_position.t` in signatures and
+implementations; add `~here:[%here]` at call sites where `~here` was not
+already propagated.
+
+Notable affected location: `skyline/bonsai_web_components/browser_storage`.
+
+---
+
+## 9. ppxlib 0.38 labeled tuple encoding and `Ast_traverse`
+
+ppxlib 0.38's internal AST is fixed at OCaml 5.2.  Labeled tuple patterns and
+types from OCaml 5.5 are encoded as extension nodes:
+
+```
+Ppat_extension("ppxlib.migration.ppat_labeled_tuple_5_4", payload)
+```
+
+The encoding stores label names as `Ppat_var` nodes and the closed/open flag
+as a literal `Ppat_var "closed_"` or `Ppat_var "open_"`.
+
+`Ast_traverse.map` and `Ast_traverse.fold` descend into `Ppat_extension`
+payloads and visit these encoding metadata nodes as if they were user
+variables.  This causes two classes of bugs:
+
+1. **`replace_variable`** in `ppx_pattern_bind`: renames/removes the
+   `Ppat_var "closed_"` flag (it's not in the variable map, so it gets
+   `\`Remove`), making `decode_ppat_labeled_tuple` fail with
+   `Invalid ppxlib.migration.ppat_labeled_tuple_5_4 encoding`.
+
+2. **`variables_of`** in `ppx_pattern_bind` and `ppx_bonsai_expander`: adds
+   `"closed_"` and the label name strings to the variable set, generating
+   phantom equality-check bindings (`__old_for_cutoff__028_` etc.) that are
+   never bound.
+
+**Fix:** in both `replace_variable` and `variables_of`, detect the labeled
+tuple extension by name, decode it with `Astlib__Encoding_504.To_502`, recurse
+only on the actual value sub-patterns, and (for `replace_variable`) re-encode
+the result.  Add `ppxlib.astlib` to the dune libraries of both packages.
+
+Affected packages: `ppx_pattern_bind`, `bonsai/ppx_bonsai`.
+
+A similar fix was needed in `ppxlib_jane/src/shim.ml` for the migration
+encoding/decoding of `Ppat_desc`, `Core_type_desc`, and `Expression_desc`.
+
+---
+
+## 10. Packages excluded from the build
 
 The following packages require Jane Street's proprietary OCaml fork or an
 uninstalled dependency and cannot be built with standard OCaml 5.5:
 
 | Package | Reason |
 |---------|--------|
-| `await` | Requires JST-internal effect/concurrency primitives |
+| `await` | JST-specific syntax: `@ portable` modalities, unboxed records |
 | `concurrent` | Requires JST-internal concurrency primitives |
-| `hardcaml_step_testbench` | Requires `handled_effect` (JST-internal C stub) |
+| `hardcaml_step_testbench` | Dune git file-tracking issue with nested git repo in workspace |
 | `ocaml_simd` | Requires JST-internal SIMD extensions |
 | `parallel` | Requires JST-internal parallel runtime |
-| `skyline` | Pervasive `local_`/`@ local` JST syntax — not fixable by removal |
 | `unboxed` | Requires JST unboxed types extension |
 | `ocaml_openapi_generator` | Requires `jingoo` (template engine, not installed) |
 
-Excluded via `(dirs (:standard \ await concurrent ...))` in `releases/dune`.
+Packages formerly excluded but now building: `skyline` (fully ported).
+
+Excluded via `(dirs (:standard \ await concurrent ...))` in `releases/dune`
+and per-package `(dirs ())` stanzas in the sub-submodule dune files.
