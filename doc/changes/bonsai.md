@@ -76,6 +76,28 @@ Several dune files in the bonsai ecosystem required warning flag additions
 
 ---
 
+## ppxlib 0.38 labeled-tuple encoding in `ppx_bonsai_expander`
+
+`ppx_bonsai/src/expander/ppx_bonsai_expander.ml` contains a `variables_of`
+traversal object (inside `duplicate_pattern`) that collects user-bound variable
+names from patterns.  ppxlib 0.38 encodes OCaml 5.5 labeled-tuple patterns
+as extension nodes (`ppxlib.migration.ppat_labeled_tuple_5_4`), using
+`Ppat_var` nodes for label names and for the open/closed flag (`"closed_"`).
+Because `Ast_traverse.fold` descends into extension payloads, these were
+mistakenly added to the variable map, producing phantom unbound equality-check
+variables at expansion time.
+
+**Fix:** override `method! pattern` in the `variables_of` object to detect
+the labeled-tuple extension, decode it with
+`Astlib__Encoding_504.To_502.decode_ppat_labeled_tuple`, and recurse only on
+the value patterns (second element of each `(label, pattern)` pair).
+
+See also `doc/changes/ppx_pattern_bind.md` for the identical fix in
+`ppx_pattern_bind`, and `doc/changes/ocaml55-compat.md` §9 for the ppxlib
+0.38 context.
+
+---
+
 ## js_of_ocaml API fixes
 
 See `doc/changes/jsoo-api.md` for:
