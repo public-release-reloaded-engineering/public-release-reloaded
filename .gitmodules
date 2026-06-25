@@ -11,3 +11,6 @@
 	path = dependencies/github
 	url = https://github.com/smuenzel/ocaml-github.git
 	branch = async-port
+[submodule "opam-repository"]
+	path = opam-repository
+	url = https://github.com/public-release-reloaded/opam-repository.git
