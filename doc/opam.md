@@ -1,5 +1,49 @@
 # opam package metadata
 
+## Package version
+
+All packages in this repository are published under the version
+`v0.18_preview.130.100+614+reloaded`.
+
+This follows the same `v0.18*` prefix used by upstream Jane Street opam
+packages (e.g. `core.v0.18`, `base.v0.18.1`) so version ordering is
+consistent.  The `+reloaded` build-metadata suffix makes these packages
+distinct from any upstream version and prevents opam from treating them as
+interchangeable — a consumer cannot accidentally satisfy a dependency on
+`core.v0.18_preview.130.100+614+reloaded` with the upstream `core.v0.18`.
+
+The version is derived from the sub-submodule branch name
+`v0.18_preview.130.100+614+reloaded` (the `+reloaded` suffix is appended to
+the Jane Street release branch name `v0.18_preview.130.100+614`).
+
+### opam-repository
+
+The `opam-repository/` directory is a standard opam repository.  Run
+
+```sh
+scripts/populate-opam-repo.sh
+```
+
+to (re-)populate `opam-repository/packages/` from the current state of
+`releases/`.  The script is idempotent.  Each `.opam` file from `releases/`
+is placed at
+
+```
+opam-repository/packages/PKGNAME/PKGNAME.VERSION/opam
+```
+
+with a `version: "VERSION"` line prepended (the source files omit this field
+because dune derives it from the git tag at build time).
+
+To use the repository locally:
+
+```sh
+opam repo add reloaded /path/to/opam-repository --rank=1
+opam install base  # will find base.v0.18_preview.130.100+614+reloaded
+```
+
+---
+
 ## Version constraints
 
 All `.opam` files in `releases/` have been updated to reflect the actual
