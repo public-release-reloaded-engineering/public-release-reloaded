@@ -33,7 +33,19 @@ opam-repository/packages/PKGNAME/PKGNAME.VERSION/opam
 ```
 
 with a `version: "VERSION"` line prepended (the source files omit this field
-because dune derives it from the git tag at build time).
+because dune derives it from the git tag at build time) and a `url` block
+appended so that `opam install` can fetch the source:
+
+```
+url {
+  src: "git+https://github.com/public-release-reloaded/PKGNAME.git#v0.18_preview.130.100+614+reloaded"
+}
+```
+
+The `src:` URL is extracted from each package's `dev-repo:` field; no separate
+checksum is required for git sources.  Tarball-based sources would require
+publishing a GitHub release and computing checksums — git sources work without
+that step.
 
 To use the repository locally:
 

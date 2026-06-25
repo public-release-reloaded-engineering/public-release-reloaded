@@ -44,11 +44,22 @@ while read -r src; do
 
   mkdir -p "$dest_dir"
 
+  # Extract the git URL from dev-repo: to use as the installable source.
+  # dev-repo has the form:
+  #   dev-repo: "git+https://github.com/public-release-reloaded/PKG.git#BRANCH"
+  # opam's url.src accepts the same git+ URL; no checksum is required for
+  # git sources.  Without a url block the package is discoverable but cannot
+  # be installed via `opam install`.
+  url_src=$(grep '^dev-repo:' "$src" | sed 's/dev-repo: *"\(.*\)"/\1/' || true)
+
   # Prepend the version: field (source files omit it — dune generates it from
   # the git tag at build time, but the opam repository needs it explicitly).
   {
     echo "version: \"$VERSION\""
     cat "$src"
+    if [[ -n "$url_src" ]]; then
+      printf '\nurl {\n  src: "%s"\n}\n' "$url_src"
+    fi
   } > "$dest"
 
   count=$((count + 1))
