@@ -211,15 +211,28 @@ uninstalled dependency and cannot be built with standard OCaml 5.5:
 
 | Package | Reason |
 |---------|--------|
-| `await` | JST-specific syntax: `@ portable` modalities, unboxed records |
-| `concurrent` | Requires JST-internal concurrency primitives |
+| `await` | Missing `portable_lockfree_htbl`, `portable_mpmc_queue` (OxCaml-only) |
+| `concurrent` | Requires `await` |
+| `parallel` | Missing `portable_mpmc_queue`, `unboxed_datatypes`, `vec` (OxCaml-only) |
+| `bonsai_term` | `view.ml` uses OxCaml syntax (`@kind`, `#(…)` unboxed products) and `unboxed_datatypes` |
+| `bonsai_term_components` | Requires `bonsai_term` |
+| `bonsai_term_test` | Requires `bonsai_term` |
+| `strace_ui` | Requires `bonsai_term` and missing `vec` |
+| `proctopus` | Requires `bonsai_term` and missing `vec` |
+| `unboxed` | Uses `float32` primitive type and `ppx_box` (OxCaml-only) |
+| `ocaml_simd` | SIMD intrinsics (OxCaml-only) and missing `vec` |
+| `skyline/private/utility-classes/demo` | Missing `ppx_tailwind`, `private_skyline_utility_classes` |
 | `hardcaml_step_testbench` | Dune git file-tracking issue with nested git repo in workspace |
-| `ocaml_simd` | Requires JST-internal SIMD extensions |
-| `parallel` | Requires JST-internal parallel runtime |
-| `unboxed` | Requires JST unboxed types extension |
 | `ocaml_openapi_generator` | Requires `jingoo` (template engine, not installed) |
 
-Packages formerly excluded but now building: `skyline` (fully ported).
+Packages formerly excluded but now building:
+- `skyline` (fully ported)
+- `notty_async` — installed `notty-community` 0.2.4 in the opam switch; restored
+  dune file with `notty-community` + `notty-community.unix` libraries
+- `hardcaml_waveterm.interactive`, `hardcaml-waveform-viewer` binary, and the
+  `hardcaml_waveterm` test libraries — all depend only on `notty_async`; one
+  JST-specific `_` hole in a pipe expression (`|> f _ arg`) in
+  `test_interactive/test_notty_rendering.ml` was rewritten as a let-binding
 
-Excluded via `(dirs (:standard \ await concurrent ...))` in `releases/dune`
-and per-package `(dirs ())` stanzas in the sub-submodule dune files.
+Excluded via per-library `(enabled_if false)` stanzas in the sub-submodule dune
+files.
