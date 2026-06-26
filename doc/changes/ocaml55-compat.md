@@ -222,7 +222,7 @@ uninstalled dependency and cannot be built with standard OCaml 5.5:
 | `unboxed` | Uses `float32` primitive type and `ppx_box` (OxCaml-only) |
 | `ocaml_simd` | SIMD intrinsics (OxCaml-only) and missing `vec` |
 | `skyline/private/utility-classes/demo` | Missing `ppx_tailwind`, `private_skyline_utility_classes` |
-| `hardcaml_step_testbench` | Dune git file-tracking issue with nested git repo in workspace |
+| `hardcaml_step_testbench` | `Handled_effect.S2` undefined: `handled_effect_raises_in_jsoo` is an empty stub (its source uses OxCaml `module type%template` / `@@ portable` modal syntax) |
 | `ocaml_openapi_generator` | Requires `jingoo` (template engine, not installed) |
 
 Packages formerly excluded but now building:

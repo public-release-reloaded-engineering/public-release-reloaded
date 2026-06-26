@@ -10,8 +10,19 @@
 
 ## Current status: excluded from build
 
-Despite the above fix, `hardcaml_step_testbench` is not built by the
-workspace.  The package's directory is a git repository (sub-submodule) and
-dune's git-source tracking interacts poorly with deeply nested git repos in
-the workspace tree.  The package is excluded via `(dirs ())` in its top-level
-dune file.  See `doc/changes/ocaml55-compat.md` §10.
+`hardcaml_step_testbench` is not built because it depends on
+`Handled_effect.S2`, a module type defined in
+`handled_effect/raises_in_jsoo/handled_effect_intf.ml` using OxCaml-only
+syntax:
+
+- `module type%template` (JST `ppx_template` syntax)
+- `@@ portable` modal annotations on module types
+
+In this workspace, `handled_effect_raises_in_jsoo` is built with
+`(modules)` (empty module list) because its source cannot be compiled with
+standard OCaml.  `handled_effect` re-exports it but exposes no types, so
+`Handled_effect.S2` is unbound when `step_core_intf.ml` references it.
+
+This is the same category of OxCaml dependency as `await`, `concurrent`, and
+`parallel`.  The package is excluded via `(dirs ())` in its top-level dune
+file.  See `doc/changes/ocaml55-compat.md` §10.
