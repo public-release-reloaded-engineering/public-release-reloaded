@@ -222,7 +222,6 @@ uninstalled dependency and cannot be built with standard OCaml 5.5:
 | `unboxed` | Uses `float32` primitive type and `ppx_box` (OxCaml-only) |
 | `ocaml_simd` | SIMD intrinsics (OxCaml-only) and missing `vec` |
 | `skyline/private/utility-classes/demo` | Missing `ppx_tailwind`, `private_skyline_utility_classes` |
-| `ocaml_openapi_generator` | Requires `jingoo` (template engine, not installed) |
 
 Packages formerly excluded but now building:
 - `skyline` (fully ported)
@@ -234,6 +233,9 @@ Packages formerly excluded but now building:
   `test_interactive/test_notty_rendering.ml` was rewritten as a let-binding
 - `hardcaml_step_testbench` — replaced its `handled_effect` dependency with
   direct OCaml 5 effects using `Effect.Shallow`; see `doc/changes/hardcaml_step_testbench.md`
+- `ocaml_openapi_generator` — vendored `jingoo` 1.5.2 and `ppx_deriving` 6.1.1
+  in `vendor/`; fixed label omission and unused-value warning in `bin/init_command.ml`;
+  removed byte-code build mode (linux_ext has no bytecode impl)
 
 Excluded via per-library `(enabled_if false)` stanzas in the sub-submodule dune
 files.
