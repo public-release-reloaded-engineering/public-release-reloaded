@@ -146,7 +146,5 @@ The `fork` commands accept `-kind releases|vendor|both`, `-workspace DIR`,
 ## Open items
 
 See `doc/todo.md` for:
-1. **`notty-community`** — packages depending on it are disabled with
-   `(enabled_if false)`; investigate whether it aliases the public `notty`
-2. **`ppxlib_jane` compatibility** — `ppxlib_jane` constrains ppxlib to
+1. **`ppxlib_jane` compatibility** — `ppxlib_jane` constrains ppxlib to
    `>= 0.33 & < 0.36` but we vendor 0.38; API incompatibilities need fixing
