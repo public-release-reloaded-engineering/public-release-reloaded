@@ -222,7 +222,6 @@ uninstalled dependency and cannot be built with standard OCaml 5.5:
 | `unboxed` | Uses `float32` primitive type and `ppx_box` (OxCaml-only) |
 | `ocaml_simd` | SIMD intrinsics (OxCaml-only) and missing `vec` |
 | `skyline/private/utility-classes/demo` | Missing `ppx_tailwind`, `private_skyline_utility_classes` |
-| `hardcaml_step_testbench` | `Handled_effect.S2` undefined: `handled_effect_raises_in_jsoo` is an empty stub (its source uses OxCaml `module type%template` / `@@ portable` modal syntax) |
 | `ocaml_openapi_generator` | Requires `jingoo` (template engine, not installed) |
 
 Packages formerly excluded but now building:
@@ -233,6 +232,8 @@ Packages formerly excluded but now building:
   `hardcaml_waveterm` test libraries — all depend only on `notty_async`; one
   JST-specific `_` hole in a pipe expression (`|> f _ arg`) in
   `test_interactive/test_notty_rendering.ml` was rewritten as a let-binding
+- `hardcaml_step_testbench` — replaced its `handled_effect` dependency with
+  direct OCaml 5 effects using `Effect.Shallow`; see `doc/changes/hardcaml_step_testbench.md`
 
 Excluded via per-library `(enabled_if false)` stanzas in the sub-submodule dune
 files.
