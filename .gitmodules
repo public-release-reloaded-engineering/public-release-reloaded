@@ -4,7 +4,8 @@
   branch = master
 [submodule "releases"]
 	path = releases
-	url = file:///home/stefan/development/public-release-reloaded/releases
+	url = https://github.com/public-release-reloaded-engineering/releases.git
+  branch = v0.18_preview.130.100+614
 [submodule "vendor"]
 	path = vendor
 	url = file:///home/stefan/development/public-release-reloaded/vendor
