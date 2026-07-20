@@ -1,6 +1,7 @@
 [submodule "reloaded-tools"]
 	path = reloaded-tools
-	url = file:///home/stefan/development/public-release-reloaded/reloaded-tools
+	url = https://github.com/public-release-reloaded-engineering/reloaded-tools.git
+  branch = master
 [submodule "releases"]
 	path = releases
 	url = file:///home/stefan/development/public-release-reloaded/releases
