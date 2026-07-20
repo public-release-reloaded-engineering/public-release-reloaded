@@ -139,6 +139,12 @@ Subcommands:
 - `fork fork` — fork all `releases/` and/or `vendor/` subrepos into
   `public-release-reloaded` / `public-release-reloaded-vendored` (idempotent)
 - `fork set-remote` — update git remotes to point at the forks
+- `constrain-deps` — rewrite `releases/*.opam` so that every dependency on
+  another `releases/` package is constrained to the major line
+  (`{>= "v0.18~" & < "v0.19~"}`); uses `opam-file-format` and preserves the
+  layout of all other fields.  Idempotent; `-dry-run` previews.  The `~` bounds
+  are deliberate — opam sorts `v0.18~preview…` *below* `v0.18`, so a plain
+  `>= "v0.18"` would exclude our own packages.
 
 The `fork` commands accept `-kind releases|vendor|both`, `-workspace DIR`,
 `-dry-run`, and `-releases-org` / `-vendor-org` overrides.
