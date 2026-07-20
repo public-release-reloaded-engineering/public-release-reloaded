@@ -39,9 +39,15 @@ what `ppxlib_jane` and the `ppx_*` workspace packages expect.
 
 To resolve:
 
-1. Update the `"ppxlib" {>= "0.33.0" & < "0.36.0"}` constraint in
+1. ~~Update the `"ppxlib" {>= "0.33.0" & < "0.36.0"}` constraint in
    `ppxlib_jane/ppxlib_jane.opam` (and similar constraints in other ppx_*
-   packages) to accept 0.38+.
+   packages) to accept 0.38+.~~ **Done** — the 73 `releases/*.opam` files that
+   still carried `{>= "0.33.0" & < "0.36.0"}` were bumped to `{>= "0.38.0"}`,
+   matching the packages already using that bound (`ppx_here`, `ppx_tydi`,
+   `ppxlib_jane`, …). This is opam metadata only and does not affect the dune
+   build. (`vendor/` lower bounds — `js_of_ocaml` `>= 0.33`, `gen_js_api`
+   `>= 0.37`, `ppx_deriving` `>= 0.36`, `sedlex` `>= 0.26` — are all already
+   satisfied by 0.38 and left untouched.)
 2. Fix any ppxlib 0.38 API incompatibilities in `ppxlib_jane` and dependent
    packages (expect changes around `Ppxlib.Ast_helper`, `Ppxlib.Ast_pattern`,
    context-free rules, and driver registration).
