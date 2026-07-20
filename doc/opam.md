@@ -3,18 +3,23 @@
 ## Package version
 
 All packages in this repository are published under the version
-`v0.18_preview.130.100+614+reloaded`.
+`v0.18~preview.130.100+614+reloaded`.
 
 This follows the same `v0.18*` prefix used by upstream Jane Street opam
 packages (e.g. `core.v0.18`, `base.v0.18.1`) so version ordering is
 consistent.  The `+reloaded` build-metadata suffix makes these packages
 distinct from any upstream version and prevents opam from treating them as
 interchangeable — a consumer cannot accidentally satisfy a dependency on
-`core.v0.18_preview.130.100+614+reloaded` with the upstream `core.v0.18`.
+`core.v0.18~preview.130.100+614+reloaded` with the upstream `core.v0.18`.
 
 The version is derived from the sub-submodule branch name
-`v0.18_preview.130.100+614+reloaded` (the `+reloaded` suffix is appended to
-the Jane Street release branch name `v0.18_preview.130.100+614`).
+`v0.18_preview.130.100+614+reloaded` by converting `_` back to `~`.  The branch
+name uses `_` because `~` is reserved in git refs; the opam version uses `~`,
+matching upstream Jane Street's `v0.18~preview…` naming.  (The `+reloaded`
+suffix is appended to the Jane Street release branch name
+`v0.18_preview.130.100+614`.)  Note the two forms are **not**
+interchangeable: the opam `version:` field and repository directory names use
+`~`, while the `url`/`dev-repo` git reference keeps the `_` branch name.
 
 ### opam-repository
 
@@ -32,6 +37,7 @@ is placed at
 opam-repository/packages/PKGNAME/PKGNAME.VERSION/opam
 ```
 
+where `VERSION` is the `~` form (e.g. `v0.18~preview.130.100+614+reloaded`),
 with a `version: "VERSION"` line prepended (the source files omit this field
 because dune derives it from the git tag at build time) and a `url` block
 appended so that `opam install` can fetch the source:
@@ -51,7 +57,7 @@ To use the repository locally:
 
 ```sh
 opam repo add reloaded /path/to/opam-repository --rank=1
-opam install base  # will find base.v0.18_preview.130.100+614+reloaded
+opam install base  # will find base.v0.18~preview.130.100+614+reloaded
 ```
 
 ---

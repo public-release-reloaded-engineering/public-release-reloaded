@@ -9,7 +9,9 @@
 # use the same v0.18* prefix without +reloaded.
 #
 # Idempotent: re-running overwrites the destination opam files in-place, which
-# is a no-op when nothing has changed.
+# is a no-op when nothing has changed.  Stale version directories for a package
+# (from an earlier version or the pre-fix '_' naming) are pruned so the mirror
+# always holds exactly one version per package.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -31,16 +33,36 @@ else
   fi
 fi
 
-echo "Populating opam-repository for version: $VERSION"
-echo "Source:      $RELEASES_DIR"
-echo "Destination: $OPAM_REPO"
+# The opam package version uses '~' (e.g. v0.18~preview...), but git branch
+# names replace '~' with '_' because '~' is reserved in git refs.  VERSION as
+# derived above is the branch name, so convert '_' back to '~' for the opam
+# version field and repository directory layout.  The git branch reference in
+# each package's dev-repo:/url block keeps the '_' form and is left untouched.
+# NB: use tr, not "${VERSION//_/~}" — bash tilde-expands a '~' replacement to
+# $HOME inside pattern substitution.
+OPAM_VERSION=$(printf '%s' "$VERSION" | tr '_' '~')
+
+echo "Populating opam-repository"
+echo "  opam version:  $OPAM_VERSION"
+echo "  git branch:    $VERSION"
+echo "  source:        $RELEASES_DIR"
+echo "  destination:   $OPAM_REPO"
 echo ""
 
 count=0
 while read -r src; do
   pkg=$(basename "$src" .opam)
-  dest_dir="$OPAM_REPO/$pkg/$pkg.$VERSION"
+  dest_dir="$OPAM_REPO/$pkg/$pkg.$OPAM_VERSION"
   dest="$dest_dir/opam"
+
+  # The mirror holds exactly one version per package (see doc/opam.md).  Remove
+  # any stale version directories for this package before writing the current
+  # one — otherwise a version change (e.g. the '_' → '~' fix, or a release bump)
+  # would leave the old version behind as a duplicate.
+  if [[ -d "$OPAM_REPO/$pkg" ]]; then
+    find "$OPAM_REPO/$pkg" -mindepth 1 -maxdepth 1 -type d \
+      ! -name "$pkg.$OPAM_VERSION" -exec rm -rf {} +
+  fi
 
   mkdir -p "$dest_dir"
 
@@ -55,7 +77,7 @@ while read -r src; do
   # Prepend the version: field (source files omit it — dune generates it from
   # the git tag at build time, but the opam repository needs it explicitly).
   {
-    echo "version: \"$VERSION\""
+    echo "version: \"$OPAM_VERSION\""
     cat "$src"
     if [[ -n "$url_src" ]]; then
       printf '\nurl {\n  src: "%s"\n}\n' "$url_src"
