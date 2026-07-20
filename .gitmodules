@@ -8,7 +8,8 @@
   branch = v0.18_preview.130.100+614
 [submodule "vendor"]
 	path = vendor
-	url = file:///home/stefan/development/public-release-reloaded/vendor
+	url = https://github.com/public-release-reloaded-engineering/vendor.git
+  branch = master
 [submodule "dependencies/github"]
 	path = dependencies/github
 	url = https://github.com/smuenzel/ocaml-github.git
