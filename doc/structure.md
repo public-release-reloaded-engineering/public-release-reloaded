@@ -21,9 +21,16 @@ public-release-reloaded/
 │   ├── cohttp/            # provides cohttp-async
 │   ├── conduit/           # provides conduit-async
 │   ├── lsp/               # depends on workspace ppx_yojson_conv_lib
-│   └── promise_jsoo/      # depends on js_of_ocaml
+│   ├── promise_jsoo/      # depends on js_of_ocaml
+│   └── opam-repository/   # published vendor packages (e.g. patched ppxlib)
+├── opam-repository/       # opam repo generated from releases/ (see doc/opam.md)
 └── releases.sexp          # Version→repos mapping produced by `list`
 ```
+
+There are two opam repositories: the top-level `opam-repository/` is generated
+from `releases/` by `scripts/populate-opam-repo.sh`, while
+`vendor/opam-repository/` hosts hand-published vendored packages.  Both are
+documented in `doc/opam.md`.
 
 ## `releases/` subrepo
 
@@ -86,6 +93,34 @@ Then register `vendor/` in the parent repo:
 git add vendor
 git commit -m "Update vendor submodule"
 ```
+
+### Versioning a vendored package
+
+Some vendored packages generate their `.opam` files from `dune-project`
+(`generate_opam_files true`) — editing the `.opam` directly is overwritten on
+the next `dune build`.  Set the version in `dune-project` instead, e.g.
+`vendor/ppxlib/dune-project`:
+
+```
+(version 0.38.0+reloaded)
+```
+
+Use a `+reloaded` build-metadata suffix so the version sorts *above* the
+upstream release it is based on (opam: `0.38.0` < `0.38.0+reloaded`), which lets
+`releases/` depend on it with `{> "0.38.0"}`.
+
+### Publishing a vendored package
+
+To make a vendored package installable via opam, publish it into
+`vendor/opam-repository/` (see `doc/opam.md` § "vendor opam-repository"):
+
+```
+vendor/opam-repository/packages/<pkg>/<pkg>.<version>/opam
+```
+
+The file is the source `.opam` plus a `url { src: "git+<fork-url>#<branch>" }`
+block pointing at the fork/branch that carries the vendored changes — **not** at
+`dev-repo:`, which for vendored packages usually still points upstream.
 
 See `doc/todo.md` for known issues with vendored package versions (in
 particular the ppxlib 0.38 / ppxlib_jane compatibility issue).

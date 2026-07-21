@@ -39,6 +39,8 @@ public-release-reloaded/          ← main repo (this one)
     cohttp/                       ← sub-submodule
     ppxlib/
     ...                           ← 13 third-party packages
+    opam-repository/              ← sub-submodule: published vendor packages
+  opam-repository/                ← submodule: opam repo generated from releases/
   dependencies/                   ← submodule
     github/                       ← ocaml-github async-port branch
   reloaded-tools/                 ← submodule
@@ -48,6 +50,8 @@ public-release-reloaded/          ← main repo (this one)
 
 - `releases/` sub-submodules: branch `v0.18_preview.130.100+614+reloaded`
 - `vendor/` sub-submodules: branch `v0.18_preview.130.100+614+reloaded-compat`
+  (except `vendor/ppxlib`, now on `0.38.0+reloaded` — a package-versioned
+  branch tracking 0.38.0 + the post-release exponential-blowup fix)
 - `releases/` repo itself: branch `v0.18_preview.130.100+614`
 - `vendor/` repo: branch `master`
 - Main repo: branch `main`

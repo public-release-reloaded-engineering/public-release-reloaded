@@ -120,19 +120,47 @@ this reflected the version available in Jane Street's internal opam repository.
 We vendor ppxlib, so that upper bound was wrong and was removed.
 
 The workspace additionally requires a ppxlib patch (fixing exponential
-behaviour) that landed upstream **after** the 0.38.0 release and is not in any
-released version.  The vendored ppxlib carries this patch, so its `version:`
-field in `vendor/ppxlib/*.opam` is set to **`0.38.0+reloaded`** (opam sorts
-`0.38.0` < `0.38.0+reloaded`, and `ppxlib-bench` / `ppxlib-tools` track it via
-`{= version}`).  The dependency constraint throughout `releases/` is therefore
-**`{> "0.38.0"}`**, which the released `0.38.0` does not satisfy but
-`0.38.0+reloaded` (and any future release > 0.38.0) does.
+behaviour in `migrate_504_503` — upstream #644) that landed **after** the
+0.38.0 release and is not in any released version.  The vendored ppxlib carries
+this patch (it tracks ppxlib `0.38.0-26-g…`, i.e. 26 commits past 0.38.0).  Its
+version is set to **`0.38.0+reloaded`** — declared via `(version 0.38.0+reloaded)`
+in `vendor/ppxlib/dune-project`, from which dune generates the `version:` field
+in all three `vendor/ppxlib/*.opam` files (`ppxlib-bench` / `ppxlib-tools`
+track it via `{= version}`).  opam sorts `0.38.0` < `0.38.0+reloaded`, so the
+dependency constraint throughout `releases/` is **`{> "0.38.0"}`**, which the
+released `0.38.0` does not satisfy but `0.38.0+reloaded` (and any future release
+> 0.38.0) does.
 
 Note: because the dune workspace builds the vendored ppxlib from source, this
 constraint only matters for opam-level resolution (i.e. installs from a
-published repository).  For that path to resolve, `vendor/ppxlib` must be
-published into an opam repository — it is **not** currently in
-`opam-repository/` (which is generated from `releases/` only).
+published repository).
+
+### vendor opam-repository
+
+Vendored packages are published in a **separate** opam repository at
+`vendor/opam-repository/` (submodule
+`public-release-reloaded-vendored/opam-repository`), kept apart from the
+`releases/`-generated `opam-repository/` at the workspace root.
+
+The patched ppxlib is published there:
+
+```
+vendor/opam-repository/packages/ppxlib/ppxlib.0.38.0+reloaded/opam
+```
+
+The file is the source `vendor/ppxlib/ppxlib.opam` with a `url` block appended:
+
+```
+url {
+  src: "git+https://github.com/public-release-reloaded-vendored/ppxlib.git#0.38.0+reloaded"
+}
+```
+
+The `src` points at the **fork** (`public-release-reloaded-vendored/ppxlib`) on
+the `0.38.0+reloaded` branch — *not* at the package's `dev-repo:`, which still
+points upstream (`ocaml-ppx/ppxlib`) and does not carry the patch.  Only
+`ppxlib` itself is published (nothing in the workspace depends on the sibling
+`ppxlib-tools` / `ppxlib-bench` packages).
 
 ### Inter-package (releases/) constraints
 
