@@ -80,7 +80,7 @@ files have been pinned to the vendored version:
 
 | opam package | vendored version | constraint used |
 |---|---|---|
-| `ppxlib` | 0.38.0 | `{>= "0.38.0"}` |
+| `ppxlib` | 0.38.0+reloaded | `{> "0.38.0"}` (see below) |
 | `cohttp` / `cohttp-*` | 6.2.1 | `{>= "6.2.1"}` |
 | `js_of_ocaml` / `js_of_ocaml-ppx` | dev (post-6.3.2) | `{>= "6.3.0"}` |
 | `lsp` / `jsonrpc` | dev (post-1.25.0) | `{>= "1.25.0"}` |
@@ -103,7 +103,7 @@ upstream constraints:
 
 | Original constraint | Replacement |
 |---|---|
-| `"ppxlib" {= "0.33.0+ox"}` | `"ppxlib" {>= "0.38.0"}` |
+| `"ppxlib" {= "0.33.0+ox"}` | `"ppxlib" {> "0.38.0"}` |
 | `"js_of_ocaml" {= "6.0.1+ox"}` | `"js_of_ocaml" {>= "6.3.0"}` |
 | `"js_of_ocaml-ppx" {= "6.0.1+ox"}` | `"js_of_ocaml-ppx" {>= "6.3.0"}` |
 | `"gen_js_api" {= "1.1.2+ox"}` | `"gen_js_api" {>= "1.1.7"}` |
@@ -113,12 +113,26 @@ upstream constraints:
 | `"re" {= "1.14.0+ox"}` | `"re" {>= "1.14.0"}` |
 | `"uutf" {= "1.0.4+ox"}` | `"uutf" {>= "1.0.4"}` |
 
-### `ppxlib` upper bound removed
+### `ppxlib` requires a post-0.38.0 patch (`{> "0.38.0"}`)
 
 The upstream sources constrained ppxlib to `{>= "0.33.0" & < "0.36.0"}` —
 this reflected the version available in Jane Street's internal opam repository.
-We vendor ppxlib 0.38.0, so the upper bound was wrong and has been removed.
-The constraint is now `{>= "0.38.0"}` throughout.
+We vendor ppxlib, so that upper bound was wrong and was removed.
+
+The workspace additionally requires a ppxlib patch (fixing exponential
+behaviour) that landed upstream **after** the 0.38.0 release and is not in any
+released version.  The vendored ppxlib carries this patch, so its `version:`
+field in `vendor/ppxlib/*.opam` is set to **`0.38.0+reloaded`** (opam sorts
+`0.38.0` < `0.38.0+reloaded`, and `ppxlib-bench` / `ppxlib-tools` track it via
+`{= version}`).  The dependency constraint throughout `releases/` is therefore
+**`{> "0.38.0"}`**, which the released `0.38.0` does not satisfy but
+`0.38.0+reloaded` (and any future release > 0.38.0) does.
+
+Note: because the dune workspace builds the vendored ppxlib from source, this
+constraint only matters for opam-level resolution (i.e. installs from a
+published repository).  For that path to resolve, `vendor/ppxlib` must be
+published into an opam repository — it is **not** currently in
+`opam-repository/` (which is generated from `releases/` only).
 
 ### Inter-package (releases/) constraints
 
