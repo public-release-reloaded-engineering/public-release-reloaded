@@ -105,3 +105,36 @@ See `doc/changes/jsoo-api.md` for:
 - `dataTransfer` now `Js.opt` (`bonsai_web_components/file/drop_file`)
 - `composedPath` elements typed as `Js.Unsafe.any` (`bonsai_web/web/util.ml`,
   `bonsai_web_components/drag_and_drop`)
+
+---
+
+## `bonsai_web_components`: added missing `public_name`s
+
+Several component libraries in `bonsai_web_components` ship upstream as
+**private** libraries (a `(library (name …))` with no `(public_name …)`).  That
+is fine within Jane Street's monorepo, but here these components are referenced
+across package boundaries (e.g. `bonsai_examples` depends on
+`bonsai_web_contrib_tabs`, `bonsai_web_notifications`, …).  A public library may
+not depend on a private one, so `dune build @install` — and any opam install of
+a consumer — fails until they are made public.
+
+Added `(public_name …)` (following the `bonsai_web_components.<name>`
+convention) to these libraries:
+
+| Directory | `public_name` added |
+|-----------|---------------------|
+| `tabs/src` | `bonsai_web_components.tabs` |
+| `notifications/src` | `bonsai_web_components.notifications` |
+| `not_connected_warning_box/src` | `bonsai_web_components.not_connected_warning_box` |
+| `experimental/animation/src` | `bonsai_web_components.experimental_animation` |
+| `experimental/form/src` | `bonsai_web_components.experimental_form` |
+| `experimental/table_form/src` | `bonsai_web_components.experimental_table_form` |
+| `bonsai_codemirror/form/src` | `bonsai_web_components.codemirror_form` |
+| `partial_render_table/configs_for_testing` | `bonsai_web_components.partial_render_table_configs_for_testing` |
+| `partial_render_table/computation_report` | `bonsai_web_components.partial_render_table_computation_report` |
+
+Not changed: `bonsai_codemirror/html_to_markdown` (`codemirror_html_to_markdown`)
+is left **private** — it depends on the `html_to_markdown` and `lambdasoup`
+libraries, which are not available in this workspace, so it cannot build.
+Exposing it would only add an `@install` failure.  (Test libraries under
+`*/test/` are intentionally left private, as usual.)
