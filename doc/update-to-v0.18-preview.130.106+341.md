@@ -111,6 +111,48 @@ branches untouched; the `166` unchanged packages untouched.
 
 ---
 
+## 0c. Batch re-port results (2026-08-23)
+
+Ran the validated pipeline across all remaining changed packages (script
+`.dune-tmp/rebase_pkg.sh`: rebase-onto-106 on a new branch, auto-`--skip` any
+commit whose only conflicts are `*.opam`).
+
+**Result: 131 of 144 changed packages rebased onto 106 and committed** (new
+`v0.18_preview.130.106+341+reloaded` branches; old `…100+614…` branches intact;
+all working trees clean).
+
+- **120 clean** (112 batch + 8 pilot).
+- **11 needed conflict resolution:**
+  - 6 `dune` files — one pattern (106 changed `(libraries …)`, our compat added
+    `(flags (:standard -w -NN))`): keep 106 libs + our flags. Scripted resolver.
+  - `core/src/gc_stubs.c` — 106 has its own OCaml 5.3+ memprof path; took 106
+    (our compat fix now redundant upstream).
+  - `bonsai_examples` — 106 deleted `effect_examples.ml`; accepted deletion.
+  - `ppx_diff` — `@ local`/`local_` in cinaps-generated strings; took 106 +
+    re-applied the removal.
+  - `bonsai_web`, `bonsai_web_components` — took 106 + re-applied mechanical
+    transforms (`effect`→`effect_`, `local_`/`@ local` removal); the
+    hand-written **jsoo-api** fixes (`doc/changes/jsoo-api.md`) were *not*
+    re-applied and will resurface as build errors to fix build-driven.
+- Residual `stack @ local` → `stack_local`: only `bin_prot`, `re2` (committed).
+
+**Deferred (13 not on 106):**
+- OxCaml-excluded, build-skipped anyway (fine to leave at 614): `await`,
+  `bonsai_term`, `bonsai_term_components`, `bonsai_term_test`, `concurrent`,
+  `ocaml_simd`, `parallel`, `proctopus`, `strace_ui`, `unboxed`. These reported
+  `NO-106-COMMIT` (no `130.106+341` stamp on `janestreet/master`).
+- Need attention: `skyline`, `hardcaml_template_project` (also `NO-106-COMMIT` —
+  investigate default branch), `handled_effect` (`614-NOT-ANCESTOR` — needs a
+  fresh re-port rather than rebase).
+
+**Still to do (next phases):** add the 4 new packages; build-driven fixes
+(`~unboxed` strip, jsoo-api re-application, any new API drift); re-derive opam
+metadata across the whole 106 tree (`constrain-deps`, ppxlib `{> "0.38.0"}`,
+dev-repo/branch URLs, `populate-opam-repo.sh`); assemble the `releases/`
+`130.106+341` branch + main-repo pointer; full `@install` build.
+
+---
+
 ## 1. Where we are today
 
 | Layer | Branch / pin | Notes |
