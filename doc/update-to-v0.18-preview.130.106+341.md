@@ -189,6 +189,50 @@ needs exclusion (it is test-only).
 
 ---
 
+## 0e. Build-driven fixes — iterations 2-4 (2026-08-23)
+
+Drove the workspace build through several iterations. **The tree now builds
+almost entirely at 106.** Fixed and committed:
+
+- `memtrace` (w69), `browser` (w67), `hardcaml/kernel` (w67),
+  `async_unix/thread_pool` (w32) — warning-as-error suppressions.
+- `ppx_diff` — `pexp_function` → `pexp_function_cases`.
+- `postgres_async` — `pbkdf` → `kdf.pbkdf`.
+- `bonsai_web` — residual `effect` keyword → `effect_` (new 106 code).
+- `expect_test_helpers_base` / `_core` — moved `[@mode m]` to the outer
+  `Ptyp_package` (the `base.md` fix, generalized).
+- `skyline`, `hardcaml_template_project` — these live on janestreet's **`oxcaml`**
+  default branch (not `master`); rebased from there. skyline then needed the
+  full `local_`/`@ local` strip across all files (its 106/oxcaml source carries
+  much more JST syntax than master packages).
+
+**Two genuinely hard blockers remain (real work, not transforms):**
+
+1. **ppx_template mode-mangling** (`expect_test_helpers_core`/`_base`, and the
+   class generally) — 106 uses `let%template … ([%compare.equal: t]
+   [@mode.explicit m])` and module-type templates whose interfaces require
+   `equal__local` / `compare__local` variants. Our ppx stack (ppx_template /
+   ppx_compare on vendored ppxlib 0.38) doesn't generate the mangled locals.
+   This is the standing **ppxlib_jane** item (`doc/todo.md`), now concrete and
+   on the critical path. Not fixable by editing sources.
+
+2. **`skyline` OxCaml syntax** — its 106/oxcaml source uses constructs that are
+   *not* removable by sed: `#(…)` unboxed tuples, `('a : immediate)` kind
+   annotations, `stack_`. Reaching green requires either a substantial re-port
+   (convert unboxed tuples to records, drop immediate kinds — like the original
+   614 skyline port) or excluding skyline (as `bonsai_term` etc. are).
+
+**New packages:** `fixed_list`, `hardcaml_packed_array` (clean libs) placed into
+`releases/` (still need submodule registration). `base_test`, `sexplib0_test`
+use OxCaml (`[@kind]`, `unbox`, `portable`) and are test-only → exclude, like
+`base_test`'s siblings.
+
+**Net:** of ~300 workspace packages, all but skyline and the
+`expect_test_helpers_*` mode-mangling family build at 106. Those two are the
+remaining work, and #1 is the ppxlib_jane sub-project.
+
+---
+
 ## 1. Where we are today
 
 | Layer | Branch / pin | Notes |
