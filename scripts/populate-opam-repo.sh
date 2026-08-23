@@ -18,14 +18,25 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RELEASES_DIR="$REPO_ROOT/releases"
 OPAM_REPO="$REPO_ROOT/opam-repository/packages"
 
-# Derive version from the branch of the first sub-submodule that has one,
-# or accept it as a CLI argument.
+# Derive the version, or accept it as a CLI argument.
+#
+# Sub-submodules can be on MIXED branches: changed packages on the current
+# release branch (…130.106+341+reloaded) and unchanged packages left on an
+# older release branch (…130.100+614+reloaded).  Picking the *first* branch
+# would wrongly select an older version (and then generate that version's opam
+# files from the newer working tree — url.src would point at the wrong branch).
+# So pick the HIGHEST '+reloaded' branch version, which is the release the
+# working tree currently represents.
+#
+# NB: to regenerate an *older* release you must both pass it explicitly AND
+# check out every sub-submodule on that release's branch first — otherwise the
+# generated files take the working tree's (newer) source and url.src.
 if [[ $# -ge 1 ]]; then
   VERSION="$1"
 else
   VERSION=$(git -C "$RELEASES_DIR" submodule foreach --quiet \
     'git branch --show-current 2>/dev/null' 2>/dev/null \
-    | grep -m1 '+reloaded' || true)
+    | grep '+reloaded' | sort -V | tail -1 || true)
   if [[ -z "$VERSION" ]]; then
     echo "ERROR: could not determine version from sub-submodule branches." >&2
     echo "Pass VERSION as the first argument." >&2
