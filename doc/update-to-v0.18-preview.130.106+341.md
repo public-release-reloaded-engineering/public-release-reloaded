@@ -9,6 +9,108 @@ and open questions involved in a version bump.
 
 ---
 
+## 0. Measured scope (crawl of 2026-07-21)
+
+The org crawl was re-run with `-max-commits 100` and the two package sets
+diffed (`releases.sexp` now reflects this run). **This overrides the worst-case
+estimate in §5/§6** — the real scope is much smaller and fully bounded:
+
+| Class | Count | Meaning | Action |
+|-------|-------|---------|--------|
+| **Changed** | 144 | Carry both a `…100+614` and a `…106+341` stamp — re-cut at the new release | Advance pointer + re-apply compat |
+| **New** | 4 | Present only at `…106+341`, not in our tree | Fork, import, port, add as submodule |
+| **Unchanged** | 166 | Carry `…100+614` (or earlier) but **no** `…106+341` stamp | **Leave at current commit** — not re-cut upstream, so nothing to import |
+
+Verification that "unchanged" is safe (not a real removal):
+
+- Our 310 submodules match the `130.100+614` crawl set **exactly** (0 diff both
+  ways) — our tree is precisely at `130.100+614`.
+- All 166 "unchanged" packages are **still in our submodule tree**; they include
+  core packages (`stdio`, `variantslib`, `fieldslib`, `ppx_hash`,
+  `ppx_inline_test`, …) that obviously remain part of v0.18. They simply were
+  not re-stamped at `130.106+341`.
+- `max_commits=100` was deep enough: no existing package was misclassified as
+  "new" (all 4 new names are genuinely absent from our tree), and every
+  unchanged package still shows its `…614` stamp within 100 commits (so a
+  `…106` stamp, being newer, would have been seen if it existed).
+
+**The 4 new packages:**
+
+| Package | Likely nature |
+|---------|---------------|
+| `base_test` | Test code split out of `base` (JST's ongoing `_test` package split) |
+| `sexplib0_test` | Test code split out of `sexplib0` |
+| `fixed_list` | New data-structure library |
+| `hardcaml_packed_array` | New hardcaml library |
+
+So the executable job is: **re-port 144 changed packages, add + port 4 new
+ones, and leave 166 untouched.** Not "310 × 6 minors."
+
+---
+
+## 0b. Pilot results (foundation, 2026-08-22)
+
+Piloted the re-port on the foundational chain to validate the pipeline. **8
+packages rebased onto their `106` upstream** on new
+`v0.18_preview.130.106+341+reloaded` branches (old `…100+614…` branches left
+untouched — verified): `base`, `sexplib0`, `basement`, `capsule0`,
+`ppx_sexp_conv`, `ppx_compare`, `ppx_template`, `sexp_grammar`.
+
+**What worked (validated):**
+
+- **Rebase-onto-106 is the right mechanic.** For each package the old
+  `+reloaded` branch = pristine `614` + a short stack of compat commits, and
+  `614` is a clean ancestor. `git rebase --onto <106> <614>` on a *new* branch
+  replays compat cleanly; source files rebased with **zero conflicts** in every
+  case.
+- **Residual JST syntax is minimal.** `106` occasionally introduces new
+  `stack @ local` ppx_template alloc compounds in files our old textual compat
+  never touched; the fix is the same documented transform (`stack @ local` →
+  `stack_local`, leaving `heap @ global` and axis vars like `a @ l` intact).
+  Found ~1 such case in `base`; none in the others.
+- **API drift from *changed* ppx packages is fixed by updating them.**
+  `base@106`'s `equal_iarray [@kind k]` (bits64) error disappeared once
+  `ppx_compare` was moved to `106`.
+
+**Refined strategy (important):** our recent **opam-constraint commits**
+(`constrain-deps`, ppxlib bumps, dev-repo URL rewrites) conflict on almost
+every package because `106` changed dependency lists — but they only touch
+`*.opam`. So during the rebase, **`git rebase --skip` any commit whose only
+conflicts are in `*.opam`**, and **re-derive all opam metadata at the end**
+across the whole `106` tree via the existing tooling (`constrain-deps`, the
+ppxlib `{> "0.38.0"}` normalization, the dev-repo/branch URL rewrite, and
+`populate-opam-repo.sh`). Don't hand-resolve constraint conflicts per package.
+
+**New transform found (`~unboxed`) — cheap, not the ppxlib_jane rabbit hole.**
+`base@106` uses a **new** deriving modifier `sexp ~unboxed` (614 had only
+`sexp ~stackify`). Initially this mis-compiled (`Variable t_of_sexp is bound
+several times`) even with `ppx_sexp_conv@106`, which looked like the standing
+ppxlib_jane / ppxlib-0.38 gap. It is **not**: `~unboxed` generates converters
+for unboxed-product types that don't exist on standard OCaml 5.5, i.e. it is
+another **OxCaml-only modifier to strip** (like `local_`, `include functor`,
+`[%call_pos]`). The fix is a one-line transform — `s/ ~unboxed//g` on deriving
+attributes — and with it **`base@106` builds green (`dune build
+releases/base/base.install`, exit 0).**
+
+**Pilot outcome: SUCCESS.** `base@106` builds against its updated changed-dep
+closure. The end-to-end pipeline for a changed package is now proven:
+1. `git rebase --onto <106> <614>` on a new branch (skip `*.opam`-only commits);
+2. strip residual JST syntax — `stack @ local` → `stack_local`, `s/ ~unboxed//g`,
+   plus the existing `local_` / `include functor` / `[%call_pos]` transforms;
+3. update the package's *changed* dependency closure the same way;
+4. re-derive opam metadata via tooling at the end.
+
+**New compat transforms to add to `doc/changes/ocaml55-compat.md`:**
+- strip ` ~unboxed` from deriving attributes (OxCaml unboxed-product converters);
+- `stack @ local` → `stack_local` in ppx_template alloc compounds introduced by
+  `106` (keep `heap @ global` and axis vars like `a @ l`).
+
+**State:** all pilot work is local, uncommitted, on new
+`v0.18_preview.130.106+341+reloaded` branches; nothing pushed; old `…100+614…`
+branches untouched; the `166` unchanged packages untouched.
+
+---
+
 ## 1. Where we are today
 
 | Layer | Branch / pin | Notes |
@@ -277,9 +379,10 @@ from-scratch port — *modulo* the new-package unknown.
 
 ## 7. Execution checklist
 
-- [ ] Raise `max_commits` in `list_releases`, re-run `list`, refresh `releases.sexp`.
-- [ ] Diff package sets: enumerate **new**, **removed**, **retained**.
-- [ ] Triage new packages (build / compat / exclude).
+- [x] Raise `max_commits` in `list_releases` (now a `-max-commits` flag,
+      default 100), re-run `list`, refresh `releases.sexp`. *(done 2026-07-21)*
+- [x] Diff package sets: **144 changed, 4 new, 166 unchanged** (see §0).
+- [ ] Triage the 4 new packages (build / compat / exclude).
 - [ ] `fork fork` + `set-remote` + `set-default-branch` for any new repos.
 - [ ] Create `v0.18_preview.130.106+341+reloaded` branches; re-apply compat.
 - [ ] Re-verify each `doc/changes/*.md` transform against the new tree.
