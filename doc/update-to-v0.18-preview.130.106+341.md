@@ -189,6 +189,38 @@ needs exclusion (it is test-only).
 
 ---
 
+## 0f. ppx_template blocker RESOLVED; skyline is the last item (2026-08-24)
+
+**The "ppx_template mode-mangling" blocker was not a ppxlib_jane rewrite — it
+was the mechanical `base.md` fix at three more sites.** In
+`expect_test_helpers_core`, `print_and_check_stable_type` /
+`print_and_check_stable_int63able_type` had `[@mode m]` *inside* the
+`(module M : Stable_type with type t = a[@mode m])` constraint, where
+ppx_template can't see it, so the local instantiation wasn't mangled to
+`Stable_type__local` and `compare__local` was missing. Moving the attribute to
+the outer `Ptyp_package` — `((module M) : (module Stable_type with type t =
+a)[@mode m])` — fixes it. `[@mode.explicit m]` on `[%compare.equal: t]` works
+fine as-is. **Both `expect_test_helpers_base` and `_core` now build**, and with
+them the whole test-helper-dependent downstream.
+
+A tree-wide scan found this inner-attribute pattern in only 4 other files
+(`base`, `core`, `accessor`) and those build fine — their modules aren't passed
+across modes, so the inner form is harmless there. No bulk transform needed.
+
+**Skyline is now the only remaining blocker.** Its 106/oxcaml source was
+mechanically ported (committed): `effect`→`effect_`, drop `stack_`, `#(a,b)`
+unboxed tuples → `(a,b)`, strip `(… : immediate)` kind annotations. What
+remains is a genuine OxCaml port of the **picker_v2 typeahead-worker** chain —
+`web_worker` + `typeahead_worker/{protocol,state}` use `or_null` (16) and
+`iarray` (15 files) throughout. `skyline_picker_v2` *depends* on these (incl. a
+compiled `typeahead_worker.bc.js` preprocessor dep), so they can't be excluded
+without dropping the whole picker_v2 component. Options: port the worker
+sub-libs (`or_null`→`option`, provide/replace `iarray`), or exclude picker_v2 +
+`focusable_list/docs` (which references unavailable demo libs). Everything else
+in the workspace builds at 106.
+
+---
+
 ## 0e. Build-driven fixes — iterations 2-4 (2026-08-23)
 
 Drove the workspace build through several iterations. **The tree now builds
