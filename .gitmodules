@@ -5,7 +5,7 @@
 [submodule "releases"]
 	path = releases
 	url = https://github.com/public-release-reloaded-engineering/releases.git
-  branch = v0.18_preview.130.100+614
+  branch = v0.18_preview.130.106+341
 [submodule "vendor"]
 	path = vendor
 	url = https://github.com/public-release-reloaded-engineering/vendor.git
