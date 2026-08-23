@@ -79,15 +79,23 @@ while read -r src; do
 
   # Prepend the version: field (source files omit it — dune generates it from
   # the git tag at build time, but the opam repository needs it explicitly).
+  #
+  # Tighten intra-release dependencies from the source major-line constraint
+  # {>= "v0.18~" & < "v0.19~"} to {= version}, so a package resolves its
+  # releases-siblings at exactly its own release version.  Without this, opam
+  # could satisfy a 130.106+341 package's dependency with an older 130.100+614
+  # preview (they both match the major line), mixing incompatible previews
+  # (e.g. an older ppx_compare that lacks the bits64 [@kind] equal).  Using the
+  # [version] variable keeps this correct for every release without hardcoding.
   {
     echo "version: \"$OPAM_VERSION\""
-    cat "$src"
+    sed 's/{>= "v0.18~" & < "v0.19~"}/{= version}/g' "$src"
     if [[ -n "$url_src" ]]; then
       printf '\nurl {\n  src: "%s"\n}\n' "$url_src"
     fi
   } > "$dest"
 
   count=$((count + 1))
-done < <(find "$RELEASES_DIR" -name "*.opam" | sort)
+done < <(find "$RELEASES_DIR" -name "*.opam" -not -path '*/_build/*' | sort)
 
 echo "Wrote $count packages."
