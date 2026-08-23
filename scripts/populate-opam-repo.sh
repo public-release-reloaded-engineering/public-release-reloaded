@@ -55,13 +55,16 @@ while read -r src; do
   dest_dir="$OPAM_REPO/$pkg/$pkg.$OPAM_VERSION"
   dest="$dest_dir/opam"
 
-  # The mirror holds exactly one version per package (see doc/opam.md).  Remove
-  # any stale version directories for this package before writing the current
-  # one — otherwise a version change (e.g. the '_' → '~' fix, or a release bump)
-  # would leave the old version behind as a duplicate.
-  if [[ -d "$OPAM_REPO/$pkg" ]]; then
-    find "$OPAM_REPO/$pkg" -mindepth 1 -maxdepth 1 -type d \
-      ! -name "$pkg.$OPAM_VERSION" -exec rm -rf {} +
+  # An opam repository holds MANY versions of a package side by side, so we do
+  # NOT remove other version directories — a release bump adds a new version
+  # dir and keeps the old ones (opam selects by constraint).
+  #
+  # The one thing we do clean up is the malformed underscore-form directory for
+  # THIS SAME version, left over from the historical '_' vs '~' naming bug
+  # (dune branch names use '_', the opam version uses '~').  Remove only that.
+  underscore_dir="$OPAM_REPO/$pkg/$pkg.$VERSION"
+  if [[ "$underscore_dir" != "$dest_dir" && -d "$underscore_dir" ]]; then
+    rm -rf "$underscore_dir"
   fi
 
   mkdir -p "$dest_dir"
