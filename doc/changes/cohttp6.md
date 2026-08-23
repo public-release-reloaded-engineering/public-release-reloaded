@@ -91,3 +91,30 @@ type annotations.
 
 **Fix:** added `(flags (:standard -alert -deprecated))` to
 `releases/async_rpc_websocket/src/src/dune`.
+
+---
+
+## `cohttp-async` opam constraint excluded 6.x
+
+Several packages carried the upstream disjunction
+
+```
+"cohttp-async" {>= "2.5.7" & < "3.0.0" | >= "5.1.1" & < "6.0.0"}
+```
+
+which caps below `6.0.0` and therefore excludes the cohttp-async 6.x series this
+workspace targets (the code is ported to the cohttp 6 API, above).  This only
+matters for opam resolution — the dune build ignores opam constraints and uses
+the vendored cohttp 6 — but it makes an opam install of these packages
+unsatisfiable (or resolve an incompatible pre-6 cohttp-async).
+
+**Fix:** relaxed the constraint to `{>= "6.2.1"}` (matching the sibling
+`cohttp` constraint; works with cohttp-async 6.3.0), dropping the stale 2.x/5.x
+ranges, in:
+
+- `cohttp_async_websocket`
+- `async_rpc_websocket`
+- `cohttp_static_handler`
+- `memtrace_viewer`
+- `tracing`
+- `bonsai_examples`
