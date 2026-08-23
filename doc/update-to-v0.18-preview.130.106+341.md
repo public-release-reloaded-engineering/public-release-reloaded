@@ -153,6 +153,42 @@ dev-repo/branch URLs, `populate-opam-repo.sh`); assemble the `releases/`
 
 ---
 
+## 0d. First workspace build (2026-08-23)
+
+Ran `dune build @install` over the whole tree with the 131 rebased packages.
+**The vast majority built at 106 on the first attempt** — a strong validation
+of the rebase approach. Only a handful of packages error.
+
+Fixed and committed:
+- `memtrace` (warning 69), `browser` (warning 67) — dune flag suppressions.
+- `ppx_diff` — `pexp_function` → `pexp_function_cases` (re-applied a compat fix
+  lost when taking 106's file; ppxlib 0.38 changed `pexp_function` to take
+  `function_param list`).
+- `postgres_async` — `pbkdf` → `kdf.pbkdf` (external library renamed upstream;
+  new dep at 106).
+
+New packages: 3 of the 4 are clean (0 OxCaml markers) — `hardcaml_packed_array`,
+`fixed_list`, `sexplib0_test` placed into `releases/` (not yet registered as
+submodules). `base_test` has 51 OxCaml markers + depends on `portable` — likely
+needs exclusion (it is test-only).
+
+**Remaining errors (iterative per-package work), by kind:**
+- *warning-as-error suppressions* (easy): `async_unix` (unused
+  `critical_section__local`, w32), a `Fold` functor param (w67).
+- *jsx / ppx_html*: ~29 `Uninterpreted extension 'html.jsx'` (bonsai_web area) —
+  106 uses `[%html.jsx …]`; our `ppx_html` doesn't provide it.
+- *jsoo-api re-fixes* (expected — deferred from the bonsai conflict resolution):
+  `bonsai_web` `Unbound value Attr.value_prop`.
+- *ppx_template `__local` mangling* (deep — the ppxlib_jane item): 
+  `expect_test_helpers_base` / `expect_test_helpers_core` — `With_equal` not
+  mangled to `With_equal__local` in local-mode `let%template` instantiations.
+  The intf is identical to the building 614 version, so this is a ppx behavior
+  gap, not a source issue.
+- *misc API drift*: `sexplib0_test` `M.unbox`, `skyline`
+  `Am_running_how_js.am_in_browser_like_api`, a hardcaml `Syntax error`.
+
+---
+
 ## 1. Where we are today
 
 | Layer | Branch / pin | Notes |
