@@ -39,3 +39,29 @@
   Note: the same pattern (a `[@@noalloc]` external whose stock-OCaml body actually
   heap-allocates) is a hazard to watch for elsewhere in the port; the C stub
   itself is now unreferenced from native code and could be removed.
+
+- `src/comparator_intf.ml`: **re-expose `Comparator.t` as a `private` record.**
+  The `Comparator` module type declared `type ('a, 'witness) t` abstractly (with
+  `val compare` / `val sexp_of_t` accessors).  Base historically (through v0.17)
+  exposed it as a private record
+
+  ```ocaml
+  type ('a, 'witness) t = private
+    { compare : 'a -> 'a -> int
+    ; sexp_of_t : 'a -> Sexp.t
+    }
+  ```
+
+  and external libraries read the `compare` / `sexp_of_t` fields directly off a
+  comparator value.  Restored the private-record exposure; `private` keeps
+  construction internal to `Base` (preserving the witness-based safety invariant),
+  while allowing field reads.  The `[@@unsafe_allow_any_mode_crossing]` attribute on
+  the concrete definition is OxCaml-only and irrelevant to this stock-OCaml target,
+  so it does not need to appear in the interface.
+
+  Mechanical follow-through in `core` (see `doc/changes/core.md`): once the type is a
+  record, `Core.Comparator`'s `include module type of Base.Comparator with type t := t`
+  no longer type-checks, because OCaml forbids destructive substitution (`:=`) on a
+  type whose declaration is a bare record/variant.  Core's re-export repeats the
+  private-record manifest so the substitution has a manifest to bite on — a purely
+  mechanical change; `Core.Comparator.t` already equalled `Base.Comparator.t`.

@@ -18,3 +18,20 @@
   Jane-Street-fork-only named warning that standard OCaml 5.5 rejects with
   `Error: Uninterpreted extension "warning"` (or similar).  The attribute was
   used as a file-level marker and had no functional effect on the build.
+
+- `core/src/comparator_intf.ml` and `core/src/comparator.ml`: repeated
+  `Base.Comparator.t`'s `private` record manifest
+
+  ```ocaml
+  type ('a, 'witness) t = ('a, 'witness) Base.Comparator.t = private
+    { compare : 'a -> 'a -> int
+    ; sexp_of_t : 'a -> Base.Sexp.t
+    }
+  ```
+
+  Mechanical follow-through to base re-exposing `Comparator.t` as a private record
+  (see `doc/changes/base.md`).  Both files re-export base via
+  `include module type of Base.Comparator with type t := t`, and OCaml forbids
+  destructive substitution (`:=`) on a type whose declaration is a bare
+  record/variant — so the substituted type needs a manifest.  This does not widen
+  core's API: `Core.Comparator.t` already equalled `Base.Comparator.t`.
