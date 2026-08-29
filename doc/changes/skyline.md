@@ -62,3 +62,29 @@ external use).
 The demo executable depends on `ppx_tailwind` and `private_skyline_utility_classes`,
 neither of which is available in the public release.  Its `dune` file has
 `(enabled_if false)` added.
+
+---
+
+## `picker/v2` OxCaml constructs (typeahead worker)
+
+`components/picker/v2` is the only skyline component using OxCaml-only syntax.
+(The related `%tydi` disambiguation failure was a `ppx_tydi` bug — see
+`doc/changes/ppx_tydi.md`.)  Remaining source ports:
+
+- `v2/src/worker_filter.ml`:
+  - `include functor Comparator.Make` → explicit
+    `include Comparator.Make (struct type nonrec t = t [@@deriving compare, sexp_of] end)`.
+  - Attributes on type *parameters* (`type ('a[@sexp.phantom], 'b[@sexp.phantom]) t`,
+    `type 'a[@sexp.phantom] t`) are a JST grammar extension that stock OCaml's
+    parser rejects.  Moved to the floating `[@@sexp.phantom: …]` form that
+    `ppx_sexp_conv` also accepts: `[@@sexp.phantom: 'a * 'b]` and
+    `[@@sexp.phantom: 'a]` on the declaration.  (Inline `[@sexp.phantom]` on a
+    core_type in a type *application* — e.g. `(('a[@sexp.phantom]), …) Action.t` —
+    parses fine and is left as-is.)
+
+- `v2/src/local_data_source.ml`: `let mutable acc = … / acc <- …` (OxCaml local
+  mutable binding) rewritten to a `ref` (`let acc = ref … / acc := …`).
+
+Note: `v2/src` still does not link because `embedded_strings.ml` depends on the
+`typeahead_worker.bc.js` js_of_ocaml artifact, which is a separate build-ordering
+issue (not a source port).
