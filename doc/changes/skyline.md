@@ -85,6 +85,13 @@ neither of which is available in the public release.  Its `dune` file has
 - `v2/src/local_data_source.ml`: `let mutable acc = … / acc <- …` (OxCaml local
   mutable binding) rewritten to a `ref` (`let acc = ref … / acc := …`).
 
-Note: `v2/src` still does not link because `embedded_strings.ml` depends on the
-`typeahead_worker.bc.js` js_of_ocaml artifact, which is a separate build-ordering
-issue (not a source port).
+- `v2/src/embedded_strings.ml`: the `[%embed_file_as_string …]` path was
+  package-root-relative (`components/picker/v2/typeahead_worker/bin/typeahead_worker.bc.js`),
+  which only resolves when skyline is the workspace root. Changed to the
+  source-relative `../typeahead_worker/bin/typeahead_worker.bc.js`, paired with
+  the `ppx_embed_file` fix that resolves embed paths relative to the source file
+  (see `doc/changes/ppx_embed_file.md`). Works both standalone and nested under
+  `releases/skyline/`.
+
+With these changes the whole `components/picker` component builds (library +
+`typeahead_worker` bin's `.bc.js` + the embedding `picker_v2` library).
