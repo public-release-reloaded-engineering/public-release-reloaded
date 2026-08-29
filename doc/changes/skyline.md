@@ -95,3 +95,14 @@ neither of which is available in the public release.  Its `dune` file has
 
 With these changes the whole `components/picker` component builds (library +
 `typeahead_worker` bin's `.bc.js` + the embedding `picker_v2` library).
+
+---
+
+## `bonsai_web_components/focusable_list/docs` disabled
+
+The docs library `bonsai_garden_focusable_list_docs` depends on
+`bonsai_garden_docs_common`, `bonsai_garden_markdown_render_engine`, and the
+`ppx_demo_md` ppx — the bonsai_garden docs infrastructure, none of which is in
+the public release. It is a leaf (nothing depends on it), so `(enabled_if false)`
+was added to its `dune` (same treatment as `private/utility-classes/demo`).
+With this, all of `releases/skyline` builds.
