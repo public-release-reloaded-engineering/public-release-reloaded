@@ -98,6 +98,22 @@ With these changes the whole `components/picker` component builds (library +
 
 ---
 
+## `skyline.opam`: restore `ppx_embed_file` dependency
+
+`ppx_embed_file` (used by `components/picker/v2/src`) was missing from
+`depends`. It was dropped by commit `2f14045` ("compat: update opam version
+constraints for OCaml 5.5"): upstream listed it as a *bare, unconstrained*
+`"ppx_embed_file"` entry, so it sat among the third-party deps that commit was
+rewriting and was removed alongside them without being re-added — even though it
+is a first-party `releases/` package.  The build never noticed because dune
+resolves ppx from the workspace regardless of opam metadata.  Re-added, now
+correctly constrained as a releases dep: `"ppx_embed_file" {>= "v0.18~" & < "v0.19~"}`.
+(A cross-check confirmed it was the only first-party dep `2f14045` dropped, and
+the other ppx used only in the disabled `docs`/`demo` dirs correctly remain
+absent.)
+
+---
+
 ## `bonsai_web_components/focusable_list/docs` disabled
 
 The docs library `bonsai_garden_focusable_list_docs` depends on
