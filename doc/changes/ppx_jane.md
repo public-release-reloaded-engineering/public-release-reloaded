@@ -60,11 +60,16 @@ Notes:
        `roundtrippable_command_param/ppx_or_default/src`,
        `bonsai_web_components/bonsai_codemirror/lib/bindings`.
 
-  Because `ppx_css` (used by ~146 libraries, including all of `bonsai_web_components`
-  and skyline) hard-depends on `ppx_module_timer.helpers`, any web/bonsai install
-  transitively installs the package — and `ppx_jane` then incorporates timing
-  there. The `depopts` therefore only changes behaviour for a minimal install that
-  takes `ppx_jane` without `ppx_css` or any other explicit dependent.
+  Originally these three libraries were one opam package, so any consumer of the
+  runtime or helpers (e.g. `core`, `ppx_css`) pulled the whole package in,
+  including the ppx — which made the `depopts` here ineffective: the ppx was
+  always installed, so `(select)` always enabled timing. To make the optionality
+  real, the package was split into `ppx_module_timer` (ppx),
+  `ppx_module_timer_runtime`, and `ppx_module_timer_helpers`
+  (see `doc/changes/ppx_module_timer.md`), and each consumer now depends on the
+  specific library it uses. With that split, the `ppx_module_timer` *ppx* package
+  is pulled in only by things that actually want instrumentation — so this
+  `depopts` genuinely gates whether module timing is incorporated.
 - Verified in-workspace: with the library available, `select` picks the enabled
   branch and a module preprocessed with `ppx_jane` still contains the injected
   `Ppx_module_timer_runtime.record_start` / `record_until` calls.
