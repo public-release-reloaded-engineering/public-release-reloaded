@@ -37,11 +37,34 @@ link-time library resolution are separate concerns:
 
 Notes:
 - The `ppx_module_timer` opam package also provides the `ppx_module_timer.runtime`
-  and `ppx_module_timer.helpers` libraries, which several packages (`core`,
-  `bonsai`, `ppx_css`, `bin_prot`, …) depend on directly. Those dependencies are
-  unaffected; in a full release install the package is present anyway, so
-  `ppx_jane` still incorporates timing there. The `depopts` only matters for a
-  minimal install that pulls in `ppx_jane` without any of those packages.
+  and `ppx_module_timer.helpers` libraries. There are two, quite different, ways
+  the rest of the release pulls the package in:
+
+  1. **Transitively, via the ppx (the common case).** `ppx_module_timer/src/dune`
+     declares `(ppx_runtime_libraries ppx_module_timer.runtime)`, so dune
+     automatically adds `ppx_module_timer.runtime` to the link of *any* library
+     preprocessed with a driver that includes the ppx. That is how every
+     `ppx_jane` consumer — `core`, `bonsai`, essentially all ~300 packages —
+     resolves the injected `Ppx_module_timer_runtime.record_start`/`record_until`
+     calls (e.g. `core/core/src/time_ns.ml`'s `open Ppx_module_timer_runtime`,
+     `bonsai`'s `startup_timing_protocol`). None of them list it in their own
+     `(libraries)`. This dependency now tracks the `select`: present when the ppx
+     is linked, gone when it isn't — self-consistent, since without the ppx no
+     such calls are generated.
+
+  2. **Explicitly, in `(libraries)` (a handful of packages).** These reference a
+     `ppx_module_timer` library directly, independent of `ppx_jane`, so they keep
+     a hard dependency on the package regardless of this change:
+     - `ppx_module_timer.helpers`: `ppx_css/src`, `ppx_demo/src`.
+     - `ppx_module_timer.runtime`: `bin_prot/bench`, `ocaml_intrinsics_kernel/{bench,test}`,
+       `roundtrippable_command_param/ppx_or_default/src`,
+       `bonsai_web_components/bonsai_codemirror/lib/bindings`.
+
+  Because `ppx_css` (used by ~146 libraries, including all of `bonsai_web_components`
+  and skyline) hard-depends on `ppx_module_timer.helpers`, any web/bonsai install
+  transitively installs the package — and `ppx_jane` then incorporates timing
+  there. The `depopts` therefore only changes behaviour for a minimal install that
+  takes `ppx_jane` without `ppx_css` or any other explicit dependent.
 - Verified in-workspace: with the library available, `select` picks the enabled
   branch and a module preprocessed with `ppx_jane` still contains the injected
   `Ppx_module_timer_runtime.record_start` / `record_until` calls.
