@@ -52,3 +52,39 @@ To resolve:
    packages (expect changes around `Ppxlib.Ast_helper`, `Ppxlib.Ast_pattern`,
    context-free rules, and driver registration).
 3. Once clean, remove or update `vendor/ppxlib/`.
+
+## `or_null` is a boxed shim — physical-identity uses are a hazard
+
+On OxCaml `'a or_null` is unboxed: `This x` is represented identically to `x`,
+and `Null` is a null pointer.  Our `base` provides `or_null` as an ordinary
+boxed variant (`Null | This of 'a`).  That is correct for the normal API
+(`is_null`, `value_exn`, `unsafe_value`, pattern matching, structural equality),
+but it breaks any code that relies on the unboxed representation:
+
+- **`phys_same` / `phys_equal` / atomic CAS on a freshly-constructed `This e`.**
+  A boxed `This e` allocates a new block every time, so it never physically
+  equals a `This e` stored earlier.  A load-bearing `true` result then becomes
+  permanently `false`.  This was the cause of the `incremental` recompute-heap
+  corruption (`Recompute_heap.unlink`, now fixed — see
+  `doc/changes/incremental.md`).  Prefer comparing *unwrapped* values, or a
+  structural marker (there, "head iff `prev` is `Null`").
+- Comparing against `Null` is fine (it is an immediate).
+
+An audit of all built `releases/` packages found `recompute_heap` to be the only
+real instance; everything else either uses the proper `or_null` API, compares
+unwrapped values, or uses stock-safe mechanisms (`Uopt`, `tuple_pool.Pointer`
+null-sentinels, `option_array`'s sentinel `None`).  `Obj.Nullable` (async_kernel
+`job_queue`, `bin_prot`) is a *different*, genuinely-unboxed mechanism and works.
+
+Outstanding:
+
+1. **`await/` is not built** and carries the same latent pattern in several
+   places (`sync/awaitable.ml` `phys_equal actual (This before)` at lines
+   210/237/271; `sync/ivar.ml` and `kernel/trigger.ml` do
+   `This ((Obj.magic …) x)`).  If `await/` is ever enabled, these need the same
+   treatment as `recompute_heap`.
+2. The durable cure would be to make `base`'s `or_null` genuinely unboxed (e.g.
+   a sentinel-based representation via `Obj`), so the OxCaml assumption holds.
+   This is deep and risky (`This Null` would be indistinguishable from `Null`,
+   as the OxCaml docs note) and is **not** required for correctness anywhere
+   currently built — the local fixes above suffice.
