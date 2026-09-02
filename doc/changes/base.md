@@ -65,3 +65,19 @@
   type whose declaration is a bare record/variant.  Core's re-export repeats the
   private-record manifest so the substitution has a manifest to bite on — a purely
   mechanical change; `Core.Comparator.t` already equalled `Base.Comparator.t`.
+
+- `src/runtime.js`: **`String.concat_array` / `String.concat_map` crashed under
+  js_of_ocaml.** The `Base_string_concat_array` JS stub copies from OCaml strings
+  (`v_sep`, each array element) into the result with `caml_blit_bytes`, which
+  expects an `MlBytes` *source* and reads `s1.c` / `s1.c.length`. This switch's
+  js_of_ocaml has `use-js-string` enabled by default, so OCaml strings are native
+  JS strings with no `.c` field, and the blit throws
+  `TypeError: Cannot read properties of undefined (reading 'length')`
+  (`concat_map` routes through `concat_array`, so it fails too). Replaced the two
+  `caml_blit_bytes` calls with `caml_blit_string` (which converts the string
+  source to bytes first) and updated the `//Requires:` header. JS-only fix: the
+  wasm stub represents strings and bytes identically (`ref $string`) and the
+  native C path shares string/bytes layout, so neither is affected. The stub is
+  upstream base (introduced `v0.18~preview.129.42+498`); the bug is latent and
+  only surfaces with `use-js-string`. Verified by compiling
+  `Base.String.concat_array`/`concat_map` to JS and running under node.
