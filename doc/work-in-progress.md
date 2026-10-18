@@ -78,6 +78,8 @@ All source changes are documented in `doc/changes/`.  Summary by category:
   - `core`: `gc_stubs.c` for OCaml 5.5, `validate` JST warning attribute
   - `hardcaml_c` / `hardcaml_verilator`: `Ctypes_foreign_threaded_stubs` alias
   - `lsp_rpc`: `CustomNotification` constructor removed from LSP library
+  - `ocaml_intrinsics_kernel`: `[@@builtin]` abort-stubs made weak symbols (the
+    OCaml 5.6 runtime defines `caml_int_clz`)
 
 - **Third-party vendor changes** (files in `doc/changes-third-party/`):
   - `httpaf`: `Bigstring_unix` split, `core_unix` dep, `Ivar.fill` alert

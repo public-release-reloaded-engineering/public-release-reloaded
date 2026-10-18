@@ -48,13 +48,51 @@ public-release-reloaded/          ← main repo (this one)
 
 ### Branch conventions
 
-- `releases/` sub-submodules: branch `v0.18_preview.130.100+614+reloaded`
+The workspace is currently assembled at release `v0.18~preview.130.106+341`
+(`~` becomes `_` in branch names, since `~` is reserved in git revision syntax):
+
+- `releases/` repo itself: branch `v0.18_preview.130.106+341`
+- `releases/` sub-submodules: branch `v0.18_preview.130.106+341+reloaded`,
+  **or** `v0.18_preview.130.100+614+reloaded` — see "carry-forward" below
 - `vendor/` sub-submodules: branch `v0.18_preview.130.100+614+reloaded-compat`
   (except `vendor/ppxlib`, now on `0.38.0+reloaded` — a package-versioned
-  branch tracking 0.38.0 + the post-release exponential-blowup fix)
-- `releases/` repo itself: branch `v0.18_preview.130.100+614`
+  branch tracking 0.38.0 + the post-release exponential-blowup fix; and the
+  packages pinned to an upstream tag/branch of their own, e.g.
+  `vendor/js_of_ocaml` on `5.5`)
 - `vendor/` repo: branch `master`
 - Main repo: branch `main`
+
+#### Carry-forward: a package without a new release stays on the old branch
+
+Jane Street does not re-cut every package at every release.  A package belongs
+to a release only if one of its commits carries that version string as its
+message (this is what `list_releases list` records in `releases.sexp`).  When a
+package has **no** commit stamped with the new version, there is nothing to
+import — so it stays at the commit and on the branch of the **previous** release
+it does appear in.  The release version therefore names the *workspace* as a
+whole, not every branch in it.
+
+Concretely, at `130.106+341`: of the 310 package submodules, **135 are on
+`v0.18_preview.130.106+341+reloaded`** (re-cut upstream, re-ported) and **177 are
+on `v0.18_preview.130.100+614+reloaded`** (not re-cut; left where they were).
+`ocaml_intrinsics_kernel` is one of the latter — it carries a `130.100+614` stamp
+and no `130.106+341` stamp, so changes to it are committed on its
+`…100+614+reloaded` branch even though `releases/` is on `…106+341`.
+
+Two practical consequences:
+
+- **Never assume a sub-submodule's branch from the release name.** Read it:
+  `git -C releases/<pkg> rev-parse --abbrev-ref HEAD`.  Commit on whatever
+  branch is checked out rather than switching to the "current" release branch;
+  creating a `…106+341+reloaded` branch for a package that was never re-cut at
+  `106` would invent a release that does not exist upstream.
+- A mixed set of branches across `releases/*` is the expected steady state, not
+  a sign of an unfinished update.
+
+See `doc/update-to-v0.18-preview.130.106+341.md` §0 for how the changed /
+new / unchanged split was measured, and §0c for the 13 packages that were
+*deliberately* left at `614` despite having been re-cut (OxCaml-only, excluded
+from the build anyway).
 
 When committing changes to subrepos, commit the subrepo first, then commit the
 parent repo to update the submodule pointer.
@@ -116,6 +154,23 @@ these via `Bigstring.*` needs updating and must add `core_unix` to its dune
   "propertyName"` instead of `element##.propertyName`
 - `element##.dataset` on a coerced `Dom_html.element Js.t` works; on
   `Js.Unsafe.any` it does not — coerce first
+
+### C stubs that a runtime may also define → `CAMLweakdef`
+
+Several packages ship C stubs that exist only to satisfy the linker: the OCaml
+`external` is marked `[@@builtin]`, so the symbol is never actually called, and
+the body is `assert(…); abort();`.  If a runtime defines a real version of the
+same symbol, a *strong* placeholder collides with it at link time.
+
+Such placeholders must therefore be `CAMLweakdef`.  The OxCaml runtime has long
+defined some of them, and **OCaml 5.6 defines `caml_int_clz`**, so this now bites
+the upstream compiler too.  Applied in `releases/ocaml_intrinsics_kernel/src/runtime.c`
+(see `doc/changes/ocaml_intrinsics_kernel.md`); `releases/ocaml_simd/sse/sse_stubs.c`
+already had it.
+
+Only unreachable placeholders get this treatment — a weak binding on a stub that
+is a *real* implementation (e.g. `caml_csel_*`) would let a runtime silently
+replace working code.
 
 ## sexplib0 two-provider problem
 

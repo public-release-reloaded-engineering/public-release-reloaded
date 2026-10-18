@@ -38,13 +38,23 @@ Each release version is a separate branch in this subrepo.  Branch names
 are the version strings with `~` replaced by `_`, since `~` is reserved in
 git revision syntax.
 
-| Branch name                    | Release version                  |
-|-------------------------------|----------------------------------|
-| `v0.18_preview.130.100+614`   | `v0.18~preview.130.100+614`      |
+| Branch name                  | Release version             |         |
+|------------------------------|-----------------------------|---------|
+| `v0.18_preview.130.100+614`  | `v0.18~preview.130.100+614` |         |
+| `v0.18_preview.130.106+341`  | `v0.18~preview.130.106+341` | current |
 
 Every branch contains all source repos that belong to that version as git
 submodules, pointing at the corresponding commits on GitHub.  Not every repo
 appears in every release.
+
+**A repo that is absent from a release keeps the commit — and the
+`…+reloaded` branch — of the last release it *did* appear in.**  Jane Street
+re-cuts only the packages it changed, so the release version names the workspace
+as a whole, not every submodule in it.  On the `130.106+341` branch, 135 of the
+310 submodules sit on `v0.18_preview.130.106+341+reloaded` and the other 177 are
+still on `v0.18_preview.130.100+614+reloaded`; both are correct.  Work on such a
+package is committed on its existing branch — see `CLAUDE.md` § "Branch
+conventions / Carry-forward".
 
 ## `reloaded-tools/` subrepo
 
